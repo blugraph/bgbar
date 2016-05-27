@@ -100,6 +100,7 @@ out=" "
 while ser1.inWaiting() > 0:
         out += ser1.read(1)
 time.sleep(.5)
+print out
 out=" "
 
 time.sleep(2)
@@ -150,6 +151,22 @@ while 1:
 	noise = ' '
 	out= ' ' 
 	try:
+	  ser1.flushInput()
+	  time.sleep(.5)
+	  print "Measurement Button ? "
+	  ser1.write("Measure?")
+	  ser1.write('\r\n')
+	  time.sleep(.5)
+	  out=" "
+	  while ser1.inWaiting() > 0:
+        	out += ser1.read(1)
+	  time.sleep(.5)
+	  print out
+	  button=out.splitlines(1)[1]
+	  out=" "	
+	  if button=="Start":
+
+
 #		ser1.flushInput()
 		r3 = requests.put("http://52.74.191.39/blunois/stationaction.php",data="N1001")
 		data = json.loads(r3.content)
