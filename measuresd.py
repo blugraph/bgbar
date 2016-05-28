@@ -35,130 +35,11 @@ leq_int=10
 
 SEND_LOOP=60
 
-
-def callback(in_data, frame_count, time_info, status):
-        frames.append(in_data)
-        return (in_data, pyaudio.paContinue)
-
 noswals={}
 
 
-ser1 = serial.Serial("/dev/ttyUSB0", baudrate=115200, timeout=2)
-print ser1
-ser1.flushInput()
-
-# Setting Clock 
-
-fl='/home/pi/dev/gpsp/cordinates.txt'
-with open(fl,'r') as f:
-        tofile_json = f.read()
-data=json.loads(tofile_json)
-
-if data["gpsstatus"]=="YES":
-#	tnow = time.strftime("%Y/%m/%d %H:%M:%S")
-	tnow=data["time"]
-	print tnow
-	ser1.write("Clock,")
-	ser1.write(tnow)
-	ser1.write('\r\n')
-	print "gps is on now"
-	time.sleep(.5)
-	out=" "
-        while ser1.inWaiting() > 0:
-                out += ser1.read(1)
-        print out
-        time.sleep(.5)
-        out=" "
-else:
-	print "gps is not on"
-	ser1.flushInput()
-	ser1.write("Clock?")
-        ser1.write('\r\n')
-	time.sleep(.5)
-	out=" "
-	while ser1.inWaiting() > 0:
-        	out += ser1.read(1)
-        print out
-	td= out.splitlines(1)[1]
-	d,t=td.split(" ")
-	y,m,d1=d.split("/")
-	devtime=str(y)+str(m)+str(d1)+" "+str(t)
-	print "New Dev Time formatted"
-	print devtime
-	print "Updating System Time with device Time"
-	os.system('sudo date  --set="%s"' % devtime)
-        time.sleep(.5)
-	out=" "
-
-ser1.flushInput()
-time.sleep(.5)
-print "Device the time"
-ser1.write("Clock?")
-ser1.write('\r\n')
-time.sleep(.5)
-out=" "
-while ser1.inWaiting() > 0:
-        out += ser1.read(1)
-time.sleep(.5)
-out=" "
-
-time.sleep(2)
-
-# Displays switched ON 
-ser1.write("Display Sub Channel,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display Ly,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display Leq,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display LE,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display Lmax,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display Lmin,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display LN1,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display LN2,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display LN3,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display LN4,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("Display LN5,On")
-ser1.write('\r\n')
-time.sleep(.2)
-ser1.write("AC OUT, Main")
-ser1.write('\r\n')
-time.sleep(2)
-ser1.flushInput()
-
-out = ' '
-set=0
-while 1:
-# This is to start the measurement, recording and upload files 
-	noise = ' '
-	out= ' ' 
-	try:
-#		ser1.flushInput()
-		r3 = requests.put("http://52.74.191.39/blunois/stationaction.php",data="N1001")
-		data = json.loads(r3.content)
-		print (r3.content)
-		if data[0]=="1":
-		  print "Measure Button Pressed"		  
-                  if set==0:
-		     set=1	
-	             try:
+def sysinit(k):
+                     try:
                         print "In the settings loop"
                         r2 = requests.put("http://52.74.191.39/blunois/stationdata.php",data="N1001")
                         print (r2.content)
@@ -214,8 +95,8 @@ while 1:
                         time.sleep(.2)
 #                        ser1.write("Ly Type,")
 #                        ser1.write(data[13])
-#			ser1.write("Lpeak")
-				
+#                       ser1.write("Lpeak")
+
 #                        ser1.write('\r\n')
 #                        time.sleep(.2)
                         ser1.write("TRM,")
@@ -225,7 +106,6 @@ while 1:
                         ser1.write("Diffuse Sound Field Correction,")
                         ser1.write(data[8])
                         ser1.write('\r\n')
-#                       ser1.flushInput()               
                         time.sleep(1)
                         ser1.write("Delay Time,")
                         ser1.write(data[20])
@@ -234,10 +114,8 @@ while 1:
                         ser1.write(data[21])
                         ser1.write('\r\n')
                         network_send=data[22] #to see if send over or store locally 
-#                        network_send="ON"
-#			ser1.flushInput()  
-			time.sleep(2)
-			while ser1.inWaiting() > 0:
+                        time.sleep(2)
+                        while ser1.inWaiting() > 0:
                                 out += ser1.read(1)
                         print out
                         time.sleep(2)
@@ -245,6 +123,153 @@ while 1:
                      except:
                         print "No Network avavailable"
                         print "Unexpected error:", sys.exc_info()[0]
+                     return
+
+
+ser1 = serial.Serial("/dev/ttyUSB0", baudrate=115200, timeout=2)
+print ser1
+ser1.flushInput()
+
+# Setting Clock 
+
+fl='/home/pi/dev/gpsp/cordinates.txt'
+with open(fl,'r') as f:
+        tofile_json = f.read()
+data=json.loads(tofile_json)
+
+if data["gpsstatus"]=="YES":
+#	tnow = time.strftime("%Y/%m/%d %H:%M:%S")
+	tnow=data["time"]
+	print tnow
+	ser1.write("Clock,")
+	ser1.write(tnow)
+	ser1.write('\r\n')
+	print "gps is on now"
+	time.sleep(.5)
+	out=" "
+        while ser1.inWaiting() > 0:
+                out += ser1.read(1)
+        print out
+        time.sleep(.5)
+        out=" "
+else:
+	print "gps is not on"
+	ser1.flushInput()
+	ser1.write("Clock?")
+        ser1.write('\r\n')
+	time.sleep(.5)
+	out=" "
+	while ser1.inWaiting() > 0:
+        	out += ser1.read(1)
+        print out
+	td= out.splitlines(1)[1]
+	d,t=td.split(" ")
+	y,m,d1=d.split("/")
+	devtime=str(y)+str(m)+str(d1)+" "+str(t)
+	print "New Dev Time formatted"
+	print devtime
+	print "Updating System Time with device Time"
+	os.system('sudo date  --set="%s"' % devtime)
+        time.sleep(.5)
+	out=" "
+
+ser1.flushInput()
+time.sleep(.5)
+print "Device current  time"
+ser1.write("Clock?")
+ser1.write('\r\n')
+time.sleep(.5)
+out=" "
+while ser1.inWaiting() > 0:
+        out += ser1.read(1)
+time.sleep(.5)
+out=" "
+
+time.sleep(2)
+
+# Displays switched ON 
+ser1.write("Display Sub Channel,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display Ly,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display Leq,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display LE,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display Lmax,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display Lmin,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display LN1,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display LN2,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display LN3,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display LN4,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("Display LN5,On")
+ser1.write('\r\n')
+time.sleep(.2)
+ser1.write("AC OUT, Main")
+ser1.write('\r\n')
+time.sleep(2)
+ser1.flushInput()
+
+out = ' '
+set=0
+man=0
+auto=0
+measure=0
+meas_int=1
+while 1:
+# This is to start the measurement, recording and upload files 
+	noise = ' '
+	out= ' ' 
+	try:
+#		ser1.flushInput()
+		if auto==0: # If web record on, auto = 1 and no check for manual button required. Web recording can not be stopped manually 
+            		
+			ser1.flushInput()
+		    	time.sleep(.5)
+            		print "Measurement Button ? "
+            		ser1.write("Measure?")
+            		ser1.write('\r\n')
+            		time.sleep(1)
+            		out=" "
+            		while ser1.inWaiting() > 0:
+               			out += ser1.read(1)
+            		time.sleep(.5)
+            		print out
+            		button=(out.splitlines(1)[1]).rstrip('\r\n') # This removes the additional characters of /r/n present in the string for new line and CF. 
+            		out=" "
+            		print "The state of the start button"
+            		print "****"+button+"***" 
+			if button=="Start":
+				man=1
+				print "Manual Measurement ON"
+			elif button=="Stop":
+				man=0
+				print "Manual measurement switched off"	
+			print "Value of man"
+			print man
+            	r3 = requests.put("http://52.74.191.39/blunois/stationaction.php", data=stationID)
+            	data = json.loads(r3.content)
+            	print (r3.content)
+        	if data[0] == "1":
+		  auto=1
+		  print "Measure Button Pressed"		  
+		  sysinit(1) # This function reads the device config information from web
 		  if lps_int==100 and leq_int==100:
 		    print "No Measurement Needs to be done - Both Intervals are turned off"	
 		    measure=0
@@ -261,7 +286,26 @@ while 1:
 			while ser1.inWaiting() > 0:
                                 out += ser1.read(1)
                         print out
- 		  if measure==1:
+
+                elif man==0:
+		
+                        print "Manual  Measurements Released"
+                        auto=0
+			measure=0	
+                        s=0
+                        ser1.write("Measure,Stop")
+                        ser1.write('\r\n')
+                        time.sleep(.5)
+                        discard=' '
+                        while ser1.inWaiting() > 0:
+                                discard += ser1.read(1)
+		else:
+
+			print "All Measurements Released"
+                        auto=0
+                        measure=0
+
+ 		if measure==1 or man==1:
 			meas_star_time=time.time()
 		    	while ((time.time() - meas_star_time) < SEND_LOOP) or (time.time() - meas_star_time) < meas_int:	
 				ser1.flushInput()
@@ -289,10 +333,11 @@ while 1:
 			if (len(tofile))>0:	
                 		print "At least one data in the making"
         			try:
-#				   if network_send=="ON":
+				   if network_send=="On":
+					print "Lets send to network"
                 			r1 = requests.put("http://52.74.191.39/blunois/noisedata.php", data=json.dumps(tofile), timeout=0.1)
 	                		print r1.status_code,": server response."
-#       	        		print r1.content
+	       	        		print r1.content
 #                			del tofile[:]
         			except:
                 			print ": Network Failed while uploading data buffer:"	  
@@ -323,20 +368,12 @@ while 1:
     								feeds.append(tofile)
     								with open(fname, mode='w') as f:
         								f.write(json.dumps(feeds, indent=2))
-#						f = open("measure.txt", 'w')
-#              					print>>f, json.dumps(tofile)
-#			                	del tofile[:]
             				except:
                 				print ": Failed to create file"
 				except:
 					print "File can not be written to the drive"
 				del tofile[:]				
-		else:
-			print "Measure Released"
-			s=0
-			ser1.write("Measure,Stop")
-        		ser1.write('\r\n')
-	
+
 	except (KeyboardInterrupt, SystemExit):
 			
 		ser1.write("Measure,Stop")
@@ -344,6 +381,6 @@ while 1:
                 print "No Network avavailable"
                 print "Unexpected error:", sys.exc_info()[0]	
 		exit()
-	
-# This is to start the recording
+
+
 
