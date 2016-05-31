@@ -37,9 +37,11 @@ SEND_LOOP=60
 
 noswals={}
 
+network_send="Off"
 
-def sysinit(k):
-                     try:
+def sysinit():
+	global network_send
+	try:
                         print "In the settings loop"
                         r2 = requests.put("http://52.74.191.39/blunois/stationdata.php",data="N1001")
                         print (r2.content)
@@ -115,15 +117,16 @@ def sysinit(k):
                         ser1.write('\r\n')
                         network_send=data[22] #to see if send over or store locally 
                         time.sleep(2)
+			print "The network flag is "+network_send
+			time.sleep(.5)
                         while ser1.inWaiting() > 0:
                                 out += ser1.read(1)
                         print out
-                        time.sleep(2)
-
-                     except:
+#                        time.sleep(2)
+	except:
                         print "No Network avavailable"
                         print "Unexpected error:", sys.exc_info()[0]
-                     return
+	return
 
 
 ser1 = serial.Serial("/dev/ttyUSB0", baudrate=115200, timeout=2)
@@ -269,7 +272,9 @@ while 1:
         	if data[0] == "1":
 		  auto=1
 		  print "Measure Button Pressed"		  
-		  sysinit(1) # This function reads the device config information from web
+		  if set==0: # set parameters for the first time
+			  set=1
+			  sysinit() # This function reads the device config information from web
 		  if lps_int==100 and leq_int==100:
 		    print "No Measurement Needs to be done - Both Intervals are turned off"	
 		    measure=0
@@ -287,12 +292,12 @@ while 1:
                                 out += ser1.read(1)
                         print out
 
-                elif man==0:
+                elif man==0 and auto==1: # Here the web info is 0
 		
                         print "Manual  Measurements Released"
                         auto=0
 			measure=0	
-                        s=0
+                        set=0
                         ser1.write("Measure,Stop")
                         ser1.write('\r\n')
                         time.sleep(.5)
@@ -304,6 +309,7 @@ while 1:
 			print "All Measurements Released"
                         auto=0
                         measure=0
+			set=0
 
  		if measure==1 or man==1:
 			meas_star_time=time.time()
@@ -332,44 +338,40 @@ while 1:
 				#time.sleep(meas_int) 
 			if (len(tofile))>0:	
                 		print "At least one data in the making"
-        			try:
-				   if network_send=="On":
+				print network_send
+				if network_send=="On": # This is Auto, checking if network optin is selected or not 
 					print "Lets send to network"
-                			r1 = requests.put("http://52.74.191.39/blunois/noisedata.php", data=json.dumps(tofile), timeout=0.1)
-	                		print r1.status_code,": server response."
-	       	        		print r1.content
-#                			del tofile[:]
-        			except:
-                			print ": Network Failed while uploading data buffer:"	  
-#				if len(tofile)>BACKLOG_BUFF_LEN:
-				try:
+					try:
+						r1 = requests.put("http://52.74.191.39/blunois/noisedata.php", data=json.dumps(tofile), timeout=0.1)
+		                		print r1.status_code,": server response."
+	       		        		print r1.content
+	        			except:
+        	        			print ": Network Failed while uploading data buffer:"	  
+				if auto==0: # This means it is manual recording. If manual and auto on, then it will send file anyways. 
+                                        dir_name= "/media/BGBAR/measure/manual/"+time.strftime("%Y-%m-%d_%H")
+				else:	
 					dir_name= "/media/BGBAR/measure/"+time.strftime("%Y-%m-%d_%H")
-        	    			try:
-                				os.makedirs(dir_name)
-            				except OSError:
-                				if os.path.exists(dir_name):
-                        				print ": Already directory exists"
-                				else:
-                        				print ": Some system Error in creating directory"
-
-       				        	print ": Failed creating the directory"
-
-		            		try:
-#              					base_filename=time.strftime("%H_%M_%S")
-              					fname=os.path.join(dir_name, "measurement" + "." + "txt")
-						if not os.path.isfile(fname):
-							print "File created first time"
-							with open(fname, mode='w') as f:
-        							f.write(json.dumps(tofile, indent=2))
-						else:
-							print "File already here"	
-    							with open(fname) as feedsjson:
-        							feeds = json.load(feedsjson)
-    								feeds.append(tofile)
-    								with open(fname, mode='w') as f:
-        								f.write(json.dumps(feeds, indent=2))
-            				except:
-                				print ": Failed to create file"
+           			try:
+               				os.makedirs(dir_name)
+         			except OSError:
+                			if os.path.exists(dir_name):
+                        			print ": Already directory exists"
+                			else:
+                        			print ": Some system Error in creating directory"
+     			        	print ": Failed creating the directory"
+	            		try:
+           				fname=os.path.join(dir_name, "measurement" + "." + "txt")
+					if not os.path.isfile(fname):
+						print "File created first time"
+						with open(fname, mode='w') as f:
+       							f.write(json.dumps(tofile, indent=2))
+					else:
+						print "File already here"	
+    						with open(fname) as feedsjson:
+       							feeds = json.load(feedsjson)
+   							feeds.append(tofile)
+    							with open(fname, mode='w') as f:
+       								f.write(json.dumps(feeds, indent=2))
 				except:
 					print "File can not be written to the drive"
 				del tofile[:]				

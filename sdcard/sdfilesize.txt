@@ -1,1 +1,1 @@
-{"diskfree": "5238", "diskyn": "YES", "disktotal": "16012"}
+{"diskfree": "25200", "diskyn": "YES", "disktotal": "31998"}

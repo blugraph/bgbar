@@ -63,6 +63,7 @@ disktotal=str("0")
 diskyn="NO"
 if __name__ == '__main__':
     for part in disk_partitions():
+	print part 
         if part.mountpoint=="/media/BGBAR":
 		diskyn="YES"
 		sd[paramList[0]]="YES"	
